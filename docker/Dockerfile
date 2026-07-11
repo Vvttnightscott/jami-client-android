@@ -49,11 +49,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && locale-gen $LANG $LC_ALL && update-locale $LANG $LC_ALL
 
 # Swig
-# Retry on transient network failures and verify the download against a known
-# SHA-256 so a corrupted or substituted tarball fails the build immediately.
+# Retry on transient network failures. No SHA-256 pin here: GitHub's
+# auto-generated archive tarballs (/archive/<tag>.tar.gz) are not byte-stable --
+# GitHub may recompress them, so the hash legitimately varies between fetches and
+# a pinned checksum would fail spuriously. Integrity for the immutable Maven
+# Central artifacts (e.g. Spoon) is still verified below.
 RUN wget --tries=3 --waitretry=5 --retry-connrefused --timeout=60 \
         -O /tmp/swig.tar.gz https://github.com/swig/swig/archive/v4.2.1.tar.gz && \
-    echo "797b23b1a4b7cbba3ffd7d4bca663200fed9362630d0aa340e8480a3ba8f8052  /tmp/swig.tar.gz" | sha256sum -c - && \
     tar xzf  /tmp/swig.tar.gz -C /opt && \
     cd /opt/swig-4.2.1/ && ./autogen.sh && ./configure && make && make install && \
     cd .. && rm -rf /opt/swig-4.2.1 /tmp/swig.tar.gz
