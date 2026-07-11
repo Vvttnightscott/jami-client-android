@@ -95,6 +95,20 @@ jobs:
       - name: Build project toolchain image
         run: docker build -f docker/Dockerfile --target build -t jami-build .
 
+      # The daemon builds ~dozens of third-party "contrib" libraries by
+      # downloading their release tarballs from external mirrors. Any single
+      # transient mirror error (e.g. a 502 from ftpmirror.gnu.org) aborts the
+      # whole native build. Cache the downloaded tarballs so they persist across
+      # runs: each run restores what was fetched before and saves any new ones,
+      # so repeated transient failures on the same tarball stop blocking.
+      - name: Cache daemon contrib tarballs
+        uses: actions/cache@v4
+        with:
+          path: daemon/contrib/tarballs
+          key: contrib-tarballs-${{ github.run_id }}
+          restore-keys: |
+            contrib-tarballs-
+
       # Compile a single ABI to keep the native build to one architecture.
       # arm64-v8a is the architecture of essentially all modern Android phones,
       # so the resulting debug APK is installable on a real device for testing.
