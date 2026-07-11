@@ -1,16 +1,23 @@
 name: CI checks
 
-# Lightweight, per-PR static checks that do not require the native Jami daemon
-# build. They give fast feedback on the repository's own build/CI tooling
-# (the class of regression that a broken `adb` invocation or a bad version
-# bump would introduce). A full APK build still runs in the Jenkins/Gerrit
-# pipeline defined in ci/Jenkinsfile.
+# Two tiers of per-PR feedback:
+#   * fast static checks (scripts, gradle wrapper) that need no native build;
+#   * an android-build job that compiles a debug APK inside the project's own
+#     Docker image so Kotlin/resource regressions are caught automatically.
+# The full instrumented test suite still runs in the Jenkins/Gerrit pipeline
+# defined in ci/Jenkinsfile.
 
 on:
   pull_request:
   push:
     branches:
       - master
+
+# Avoid stacking the expensive android-build job: a newer push to the same ref
+# cancels an in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -63,3 +70,45 @@ jobs:
       # release, complementing the distributionSha256Sum pin in
       # gradle-wrapper.properties.
       - uses: gradle/actions/wrapper-validation@v4
+
+  android-build:
+    name: Compile debug APK (x86_64)
+    runs-on: ubuntu-latest
+    # The daemon + contrib native build is long; allow generous headroom.
+    timeout-minutes: 300
+    steps:
+      - name: Check out with submodules (daemon)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # The contrib build and NDK are large; reclaim space the hosted runner
+      # spends on toolchains we do not use (everything runs inside Docker).
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android/sdk \
+            /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          df -h
+
+      # Build only the toolchain stage of the project's own image so the SDK,
+      # NDK and SWIG versions exactly match the maintained build environment.
+      - name: Build project toolchain image
+        run: docker build -f docker/Dockerfile --target build -t jami-build .
+
+      # Compile a single ABI to keep the native build to one architecture.
+      # assembleDebug exercises Kotlin + resource compilation, which is what
+      # catches regressions in the wizard/onboarding UI changes.
+      - name: Compile debug APK
+        run: |
+          docker run --rm \
+            -e ANDROID_ABI=x86_64 \
+            -v "$PWD":/src -w /src \
+            jami-build bash -c './compile.sh'
+
+      - name: Upload debug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-x86_64
+          path: jami-android/app/build/outputs/apk/**/debug/*.apk
+          if-no-files-found: ignore
