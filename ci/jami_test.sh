@@ -42,7 +42,7 @@ if [ ! -f "$TEST_APK_PATH" ]; then
 fi
 
 # Install test assets on emulator (images, videos, audios, files, ...)
-sh adb push $TEST_ASSETS_DIRECTORY_PATH "/data/local/tmp/jami_test_assets"
+adb push $TEST_ASSETS_DIRECTORY_PATH "/data/local/tmp/jami_test_assets"
 
 # Launch test execution
 "$JAVA_HOME"/bin/java -jar "$SPOON_RUNNER_PATH" --apk "$APK_PATH" --test-apk "$TEST_APK_PATH" --sdk "$ANDROID_SDK_ROOT" --fail-on-failure
