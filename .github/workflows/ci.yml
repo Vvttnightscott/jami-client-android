@@ -90,6 +90,12 @@ jobs:
             /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
           df -h
 
+      # The pinned daemon commit determines the exact contrib versions, so it is
+      # the correct cache key for the built native libraries.
+      - name: Resolve daemon commit
+        id: daemon
+        run: echo "sha=$(git -C daemon rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       # Build only the toolchain stage of the project's own image so the SDK,
       # NDK and SWIG versions exactly match the maintained build environment.
       - name: Build project toolchain image
@@ -109,6 +115,29 @@ jobs:
           restore-keys: |
             contrib-tarballs-
 
+      # Cache the *compiled* contrib for this architecture. Contrib builds are
+      # incremental (stamp files skip already-built packages), so restoring this
+      # turns the ~hours-long native build into a near-no-op on later runs.
+      # Keyed strictly on the daemon commit -- when contrib versions change, the
+      # daemon SHA changes and the cache correctly misses. Absolute build paths
+      # stay valid because the tree is always mounted at the same /src location.
+      - name: Cache built daemon contrib (arm64)
+        uses: actions/cache@v4
+        with:
+          path: daemon/contrib/aarch64-linux-android
+          key: contrib-built-aarch64-${{ steps.daemon.outputs.sha }}
+
+      # Cache the Gradle user home (dependencies + build cache). Routed to a path
+      # under the mounted tree so it persists out of the container; keyed on the
+      # build scripts so dependency changes invalidate it.
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: .gradle-home
+          key: gradle-${{ hashFiles('jami-android/**/*.gradle.kts', 'jami-android/gradle/libs.versions.toml', 'jami-android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-
+
       # Compile a single ABI to keep the native build to one architecture.
       # arm64-v8a is the architecture of essentially all modern Android phones,
       # so the resulting debug APK is installable on a real device for testing.
@@ -118,8 +147,16 @@ jobs:
         run: |
           docker run --rm \
             -e ANDROID_ABI=arm64-v8a \
+            -e GRADLE_USER_HOME=/src/.gradle-home \
             -v "$PWD":/src -w /src \
             jami-build bash -c './compile.sh'
+
+      # The Docker build writes cache dirs as root; hand them back to the runner
+      # user so the post-job cache-save steps can read them (runs even on failure
+      # so partial progress is still cached).
+      - name: Restore cache ownership
+        if: always()
+        run: sudo chown -R "$(id -u):$(id -g)" daemon/contrib .gradle-home 2>/dev/null || true
 
       - name: Upload debug APK
         if: success()
