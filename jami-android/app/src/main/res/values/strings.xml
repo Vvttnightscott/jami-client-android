@@ -458,8 +458,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <string name="total_devices">Total devices: </string>
 
     <!-- Share fragment -->
-    <string name="share_message">Scan this code with Jami</string>
+    <string name="share_message">Ask a friend to scan this code with their Jami app to add you.</string>
     <string name="share_message_no_account">Please select an account to share.</string>
+    <!-- Guidance shown on the QR scan page -->
+    <string name="scan_contact_instruction">Point your camera at your friend\'s Jami code to add them.</string>
     <string name="share_your_account_information">Share my contact information</string>
     <string name="share_contact_information">Share contact information</string>
     <string name="share_label">Share</string>

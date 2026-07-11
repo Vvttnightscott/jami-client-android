@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:paddingStart="32dp"
+    android:paddingEnd="32dp">
+
+    <ImageView
+        android:id="@+id/intro_image"
+        android:layout_width="160dp"
+        android:layout_height="160dp"
+        android:layout_marginBottom="40dp"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        tools:src="@drawable/intro_illustration_connect" />
+
+    <TextView
+        android:id="@+id/intro_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:gravity="center"
+        android:textColor="@color/colorOnSurface"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        tools:text="Stay in touch" />
+
+    <TextView
+        android:id="@+id/intro_description"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:lineSpacingMultiplier="1.2"
+        android:textColor="@color/colorOnSurface"
+        android:textSize="18sp"
+        tools:text="Call and message the people you care about, all in one simple app." />
+
+</LinearLayout>

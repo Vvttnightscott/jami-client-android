@@ -58,6 +58,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <string name="wizard_already_have_account">I already use Jami</string>
     <string name="wizard_existing_account_header">Already using Jami on another device?</string>
 
+    <!-- First-run intro carousel -->
+    <string name="intro_skip">Skip</string>
+    <string name="intro_next">Next</string>
+    <string name="intro_get_started">Get started</string>
+    <string name="intro_slide1_title">Stay in touch</string>
+    <string name="intro_slide1_description">Call and message the people you care about, all in one simple app.</string>
+    <string name="intro_slide2_title">Private by design</string>
+    <string name="intro_slide2_description">Your calls and messages are end-to-end encrypted and never stored on a server.</string>
+    <string name="intro_slide3_title">No phone number needed</string>
+    <string name="intro_slide3_description">Jami is free and works without a SIM card or a phone number.</string>
+
     <string name="help_sip_title">Add SIP account</string>
     <string name="help_sip">Configure existing SIP account</string>
     <string name="create_sip_account">Configure SIP account</string>
