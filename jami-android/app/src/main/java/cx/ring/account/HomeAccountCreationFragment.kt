@@ -24,6 +24,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
+import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import com.google.android.material.snackbar.Snackbar
 import cx.ring.R
@@ -93,6 +94,17 @@ class HomeAccountCreationFragment :
             accountConnectServer.setOnClickListener { presenter.clickOnConnectAccount() }
             ringImportAccount.setOnClickListener { presenter.clickOnBackupAccountLink() }
             sipAddAccount.setOnClickListener { presenter.clickOnCreateSIPAccount() }
+            // Progressive disclosure: reveal the advanced sign-in options only
+            // when the user says they already have a Jami account, keeping the
+            // first-run screen focused on the single primary action.
+            alreadyHaveAccount.setOnClickListener {
+                val expanded = !advancedOptionsGroup.isVisible
+                advancedOptionsGroup.isVisible = expanded
+                alreadyHaveAccount.setIconResource(
+                    if (expanded) R.drawable.baseline_expand_less_24
+                    else R.drawable.baseline_expand_more_24
+                )
+            }
             binding = this
         }.root
 

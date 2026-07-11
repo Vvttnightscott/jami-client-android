@@ -52,6 +52,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     <string name="account_type_ip2ip">IP account</string>
     <string name="help_ring">A Jami account allows you to reach people securely in peer to peer through a fully distributed network.</string>
 
+    <!-- Plain-language welcome copy for the first-run account screen -->
+    <string name="wizard_welcome_subtitle">Call and message people for free and privately. No phone number needed.</string>
+    <string name="wizard_create_account_action">Create my account</string>
+    <string name="wizard_already_have_account">I already use Jami</string>
+    <string name="wizard_existing_account_header">Already using Jami on another device?</string>
+
     <string name="help_sip_title">Add SIP account</string>
     <string name="help_sip">Configure existing SIP account</string>
     <string name="create_sip_account">Configure SIP account</string>

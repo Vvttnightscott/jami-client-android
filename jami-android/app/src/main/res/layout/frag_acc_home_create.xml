@@ -14,84 +14,143 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:animateLayoutChanges="true"
+            android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:paddingBottom="16dp">
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="24dp">
 
             <ImageView
                 android:id="@+id/imageView6"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:layout_marginRight="16dp"
-                android:layout_marginLeft="16dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="8dp"
                 android:contentDescription="@string/app_name"
                 app:srcCompat="@drawable/ic_jami_full_logo" />
 
+            <!-- Friendly, jargon-free welcome. -->
             <TextView
+                android:id="@+id/welcome_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
                 android:gravity="center"
-                android:padding="30dp"
-                android:layout_marginBottom="18dp"
-                android:layout_marginTop="18dp"
-                android:text="@string/help_ring"
-                android:textSize="18sp"
-                android:textStyle="bold"/>
+                android:text="@string/account_creation_home"
+                android:textColor="@color/colorOnSurface"
+                android:textSize="24sp"
+                android:textStyle="bold" />
 
+            <TextView
+                android:id="@+id/welcome_subtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="28dp"
+                android:gravity="center"
+                android:text="@string/wizard_welcome_subtitle"
+                android:textColor="@color/colorOnSurface"
+                android:textSize="18sp" />
+
+            <!-- Primary action: the only choice a brand-new user needs to make. -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/ring_create_btn"
                 style="@style/WizardButton"
                 android:layout_width="@dimen/wizard_button_width"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="@string/account_new_button"
-                android:drawableLeft="@drawable/baseline_account_circle_white_36"
-                android:drawableRight="@drawable/baseline_arrow_forward_white_18"/>
+                android:minHeight="56dp"
+                android:text="@string/wizard_create_account_action"
+                android:textSize="16sp"
+                app:icon="@drawable/baseline_account_circle_white_36"
+                app:iconGravity="textStart" />
 
+            <!-- Progressive disclosure: advanced ways to sign in are hidden by
+                 default behind this toggle so the first screen stays simple. -->
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/link_device"
-                style="@style/WizardButton"
+                android:id="@+id/already_have_account"
+                style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="@dimen/wizard_button_width"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:layout_marginBottom="12dp"
-                android:text="@string/account_link_device"
-                android:drawableLeft="@drawable/baseline_devices_white_36"
-                android:drawableRight="@drawable/baseline_arrow_forward_white_18"/>
+                android:layout_marginTop="8dp"
+                android:minHeight="48dp"
+                android:text="@string/wizard_already_have_account"
+                android:textSize="15sp"
+                app:icon="@drawable/baseline_expand_more_24"
+                app:iconGravity="textEnd" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/ring_import_account"
-                style="@style/ButtonOutLined"
-                android:layout_width="@dimen/wizard_button_width"
+            <LinearLayout
+                android:id="@+id/advanced_options_group"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="@string/account_link_archive_button"
-                android:drawableTint="@color/color_primary_dark"
-                android:drawableLeft="@drawable/baseline_backup_black_36"
-                android:drawableRight="@drawable/baseline_arrow_forward_black_18"/>
+                android:layout_marginTop="8dp"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/account_connect_server"
-                style="@style/ButtonOutLined"
-                android:layout_width="@dimen/wizard_button_width"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:layout_marginBottom="12dp"
-                android:text="@string/account_connect_server_button"
-                android:drawableTint="@color/color_primary_dark"
-                android:drawableLeft="@drawable/baseline_router_black_36"
-                android:drawableRight="@drawable/baseline_arrow_forward_black_18"/>
+                <TextView
+                    android:layout_width="@dimen/wizard_button_width"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:gravity="center"
+                    android:text="@string/wizard_existing_account_header"
+                    android:textColor="@color/colorOnSurface"
+                    android:textSize="15sp" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/sip_add_account"
-                style="@style/ButtonOutLined"
-                android:layout_width="@dimen/wizard_button_width"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="@string/add_sip_account_title"
-                android:drawableTint="@color/color_primary_dark"
-                android:drawableLeft="@drawable/baseline_dialer_sip_24"
-                android:drawableRight="@drawable/baseline_arrow_forward_black_18"/>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/link_device"
+                    style="@style/WizardButton"
+                    android:layout_width="@dimen/wizard_button_width"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginBottom="12dp"
+                    android:minHeight="56dp"
+                    android:text="@string/account_link_device"
+                    app:icon="@drawable/baseline_devices_white_36"
+                    app:iconGravity="textStart" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/ring_import_account"
+                    style="@style/ButtonOutLined"
+                    android:layout_width="@dimen/wizard_button_width"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginBottom="12dp"
+                    android:minHeight="56dp"
+                    android:text="@string/account_link_archive_button"
+                    app:icon="@drawable/baseline_backup_black_36"
+                    app:iconGravity="textStart"
+                    app:iconTint="@color/color_primary_dark" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/account_connect_server"
+                    style="@style/ButtonOutLined"
+                    android:layout_width="@dimen/wizard_button_width"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginBottom="12dp"
+                    android:minHeight="56dp"
+                    android:text="@string/account_connect_server_button"
+                    app:icon="@drawable/baseline_router_black_36"
+                    app:iconGravity="textStart"
+                    app:iconTint="@color/color_primary_dark" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/sip_add_account"
+                    style="@style/ButtonOutLined"
+                    android:layout_width="@dimen/wizard_button_width"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:minHeight="56dp"
+                    android:text="@string/add_sip_account_title"
+                    app:icon="@drawable/baseline_dialer_sip_24"
+                    app:iconGravity="textStart"
+                    app:iconTint="@color/color_primary_dark" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
