@@ -1,0 +1,65 @@
+name: CI checks
+
+# Lightweight, per-PR static checks that do not require the native Jami daemon
+# build. They give fast feedback on the repository's own build/CI tooling
+# (the class of regression that a broken `adb` invocation or a bad version
+# bump would introduce). A full APK build still runs in the Jenkins/Gerrit
+# pipeline defined in ci/Jenkinsfile.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  scripts:
+    name: Shell & Python script checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate shell script syntax (bash -n)
+        run: |
+          set -e
+          for f in compile.sh update-translations.sh fdroidMergeRequest.sh ci/*.sh; do
+            echo "Checking $f"
+            bash -n "$f"
+          done
+
+      - name: ShellCheck (fail on errors)
+        run: |
+          sudo apt-get update && sudo apt-get install -y shellcheck
+          # Gate only on genuine errors; the vendored cqfd script is excluded
+          # as it is third-party and maintained upstream.
+          shellcheck --severity=error \
+            compile.sh \
+            update-translations.sh \
+            fdroidMergeRequest.sh \
+            ci/jami_test.sh \
+            ci/start_emu_headless.sh \
+            ci/download_screenshots.sh
+
+      - name: Python syntax check
+        run: python3 -m py_compile update_version.py
+
+      - name: Verify version bumper against real build file
+        run: |
+          set -e
+          cp jami-android/app/build.gradle.kts /tmp/build.gradle.kts
+          python3 update_version.py -p /tmp/build.gradle.kts
+          echo "--- resulting version lines ---"
+          grep -E 'versionCode|versionName' /tmp/build.gradle.kts
+
+  gradle-wrapper:
+    name: Validate Gradle wrapper
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Verifies the checked-in gradle-wrapper.jar matches a known-good Gradle
+      # release, complementing the distributionSha256Sum pin in
+      # gradle-wrapper.properties.
+      - uses: gradle/actions/wrapper-validation@v4
