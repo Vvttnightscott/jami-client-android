@@ -49,7 +49,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && locale-gen $LANG $LC_ALL && update-locale $LANG $LC_ALL
 
 # Swig
-RUN wget -O /tmp/swig.tar.gz https://github.com/swig/swig/archive/v4.2.1.tar.gz && \
+# Retry on transient network failures. No SHA-256 pin here: GitHub's
+# auto-generated archive tarballs (/archive/<tag>.tar.gz) are not byte-stable --
+# GitHub may recompress them, so the hash legitimately varies between fetches and
+# a pinned checksum would fail spuriously. Integrity for the immutable Maven
+# Central artifacts (e.g. Spoon) is still verified below.
+RUN wget --tries=3 --waitretry=5 --retry-connrefused --timeout=60 \
+        -O /tmp/swig.tar.gz https://github.com/swig/swig/archive/v4.2.1.tar.gz && \
     tar xzf  /tmp/swig.tar.gz -C /opt && \
     cd /opt/swig-4.2.1/ && ./autogen.sh && ./configure && make && make install && \
     cd .. && rm -rf /opt/swig-4.2.1 /tmp/swig.tar.gz
@@ -63,7 +69,11 @@ ARG BUILD_TOOLS="36.1.0"
 # Install Commandlinetools.
 ENV ANDROID_SDK_ROOT=/opt/android
 ARG ANDROID_CMD="commandlinetools-linux-11076708_latest.zip"
-RUN wget https://dl.google.com/android/repository/${ANDROID_CMD} -P /tmp && \
+# Retry on transient network failures. The build number (11076708) pins an
+# immutable Google build; a SHA-256 can additionally be verified here once the
+# checksum is obtained from a host with access to dl.google.com.
+RUN wget --tries=3 --waitretry=5 --retry-connrefused --timeout=60 \
+        https://dl.google.com/android/repository/${ANDROID_CMD} -P /tmp && \
     unzip -d $ANDROID_SDK_ROOT /tmp/$ANDROID_CMD && \
     mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/tools && cd $ANDROID_SDK_ROOT/cmdline-tools && mv NOTICE.txt source.properties bin lib tools/ && \
     cd $ANDROID_SDK_ROOT/cmdline-tools/tools && ls
@@ -89,9 +99,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libx11-6 libx11-xcb1
 
 # Install Spoon (test manager).
+# Retry on transient network failures and verify against a known SHA-256
+# (cross-checked against Maven Central's published SHA-1 for this artifact).
 ENV SPOON_RUNNER_PATH=/spoon-runner.jar
-RUN wget -O /spoon-runner.jar \
-    "https://repo1.maven.org/maven2/com/squareup/spoon/spoon-runner/1.7.1/spoon-runner-1.7.1-jar-with-dependencies.jar"
+RUN wget --tries=3 --waitretry=5 --retry-connrefused --timeout=60 \
+        -O /spoon-runner.jar \
+        "https://repo1.maven.org/maven2/com/squareup/spoon/spoon-runner/1.7.1/spoon-runner-1.7.1-jar-with-dependencies.jar" && \
+    echo "ce926e57101c71b07ef1239a9814f7a2a87895cfee1e6a4cae3bdb460ed03e94  /spoon-runner.jar" | sha256sum -c -
 
 # Install android SDK libraries for emulation.
 ARG API_LEVEL="36"

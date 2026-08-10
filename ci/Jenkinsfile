@@ -127,13 +127,16 @@ pipeline {
                         echo "Failed to download screenshots: ${e.getMessage()}"
                     }*/
 
-                    // Archive tests output and save it as Jenkins artifact
-                    sh 'cd /jami-client-android/ci/spoon-output && zip -r ../ui-test-output.zip *'
-                    archiveArtifacts artifacts: 'ci/ui-test-output.zip', allowEmptyArchive: false
+                    // Archive tests output and save it as Jenkins artifact.
+                    // Tolerate an empty/missing spoon-output directory (e.g. the
+                    // emulator failed to boot) so the archiving step does not mask
+                    // the real test failure reported via errorOccurred below.
+                    sh 'mkdir -p /jami-client-android/ci/spoon-output && cd /jami-client-android/ci/spoon-output && zip -r ../ui-test-output.zip . || true'
+                    archiveArtifacts artifacts: 'ci/ui-test-output.zip', allowEmptyArchive: true
 
                     // Publish HTML report (directly visible in Jenkins UI)
                     publishHTML (target: [
-                        allowMissing: false,
+                        allowMissing: true,
                         alwaysLinkToLastBuild: false,
                         keepAll: true,
                         reportDir: 'ci/spoon-output',

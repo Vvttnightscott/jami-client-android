@@ -149,10 +149,21 @@ class AccountWizardActivity : BaseActivity<AccountWizardPresenter>(), AccountWiz
     }
 
     override fun goToHomeCreation() {
-        supportFragmentManager
-                .beginTransaction()
-                .replace(R.id.wizard_container, HomeAccountCreationFragment(), HomeAccountCreationFragment.TAG)
-                .commit()
+        // Show the one-time illustrated intro before the account screen on first
+        // launch; afterwards go straight to account creation.
+        val hasSeenIntro = getSharedPreferences(IntroCarouselFragment.PREFS_NAME, MODE_PRIVATE)
+            .getBoolean(IntroCarouselFragment.PREF_HAS_SEEN_INTRO, false)
+        if (hasSeenIntro) {
+            supportFragmentManager
+                    .beginTransaction()
+                    .replace(R.id.wizard_container, HomeAccountCreationFragment(), HomeAccountCreationFragment.TAG)
+                    .commit()
+        } else {
+            supportFragmentManager
+                    .beginTransaction()
+                    .replace(R.id.wizard_container, IntroCarouselFragment(), IntroCarouselFragment.TAG)
+                    .commit()
+        }
     }
 
     override fun goToSipCreation() {

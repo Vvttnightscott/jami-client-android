@@ -21,4 +21,18 @@
         android:layout_height="match_parent"
         android:layout_gravity="center_horizontal"/>
 
+    <!-- Plain-language guidance so first-time users know what to do with the
+         camera view instead of facing an unexplained scanner. -->
+    <TextView
+        android:id="@+id/scan_instruction"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="#99000000"
+        android:gravity="center"
+        android:padding="16dp"
+        android:text="@string/scan_contact_instruction"
+        android:textColor="@android:color/white"
+        android:textSize="16sp" />
+
 </FrameLayout>

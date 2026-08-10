@@ -1,0 +1,167 @@
+name: CI checks
+
+# Two tiers of per-PR feedback:
+#   * fast static checks (scripts, gradle wrapper) that need no native build;
+#   * an android-build job that compiles a debug APK inside the project's own
+#     Docker image so Kotlin/resource regressions are caught automatically.
+# The full instrumented test suite still runs in the Jenkins/Gerrit pipeline
+# defined in ci/Jenkinsfile.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+# Avoid stacking the expensive android-build job: a newer push to the same ref
+# cancels an in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  scripts:
+    name: Shell & Python script checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate shell script syntax (bash -n)
+        run: |
+          set -e
+          for f in compile.sh update-translations.sh fdroidMergeRequest.sh ci/*.sh; do
+            echo "Checking $f"
+            bash -n "$f"
+          done
+
+      - name: ShellCheck (fail on errors)
+        run: |
+          sudo apt-get update && sudo apt-get install -y shellcheck
+          # Gate only on genuine errors; the vendored cqfd script is excluded
+          # as it is third-party and maintained upstream.
+          shellcheck --severity=error \
+            compile.sh \
+            update-translations.sh \
+            fdroidMergeRequest.sh \
+            ci/jami_test.sh \
+            ci/start_emu_headless.sh \
+            ci/download_screenshots.sh
+
+      - name: Python syntax check
+        run: python3 -m py_compile update_version.py
+
+      - name: Verify version bumper against real build file
+        run: |
+          set -e
+          cp jami-android/app/build.gradle.kts /tmp/build.gradle.kts
+          python3 update_version.py -p /tmp/build.gradle.kts
+          echo "--- resulting version lines ---"
+          grep -E 'versionCode|versionName' /tmp/build.gradle.kts
+
+  gradle-wrapper:
+    name: Validate Gradle wrapper
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Verifies the checked-in gradle-wrapper.jar matches a known-good Gradle
+      # release, complementing the distributionSha256Sum pin in
+      # gradle-wrapper.properties.
+      - uses: gradle/actions/wrapper-validation@v4
+
+  android-build:
+    name: Compile debug APK (arm64-v8a)
+    runs-on: ubuntu-latest
+    # The daemon + contrib native build is long; allow generous headroom.
+    timeout-minutes: 300
+    steps:
+      - name: Check out with submodules (daemon)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # The contrib build and NDK are large; reclaim space the hosted runner
+      # spends on toolchains we do not use (everything runs inside Docker).
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android/sdk \
+            /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          df -h
+
+      # The pinned daemon commit determines the exact contrib versions, so it is
+      # the correct cache key for the built native libraries.
+      - name: Resolve daemon commit
+        id: daemon
+        run: echo "sha=$(git -C daemon rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      # Build only the toolchain stage of the project's own image so the SDK,
+      # NDK and SWIG versions exactly match the maintained build environment.
+      - name: Build project toolchain image
+        run: docker build -f docker/Dockerfile --target build -t jami-build .
+
+      # The daemon builds ~dozens of third-party "contrib" libraries by
+      # downloading their release tarballs from external mirrors. Any single
+      # transient mirror error (e.g. a 502 from ftpmirror.gnu.org) aborts the
+      # whole native build. Cache the downloaded tarballs so they persist across
+      # runs: each run restores what was fetched before and saves any new ones,
+      # so repeated transient failures on the same tarball stop blocking.
+      - name: Cache daemon contrib tarballs
+        uses: actions/cache@v4
+        with:
+          path: daemon/contrib/tarballs
+          key: contrib-tarballs-${{ github.run_id }}
+          restore-keys: |
+            contrib-tarballs-
+
+      # Cache the *compiled* contrib for this architecture. Contrib builds are
+      # incremental (stamp files skip already-built packages), so restoring this
+      # turns the ~hours-long native build into a near-no-op on later runs.
+      # Keyed strictly on the daemon commit -- when contrib versions change, the
+      # daemon SHA changes and the cache correctly misses. Absolute build paths
+      # stay valid because the tree is always mounted at the same /src location.
+      - name: Cache built daemon contrib (arm64)
+        uses: actions/cache@v4
+        with:
+          path: daemon/contrib/aarch64-linux-android
+          key: contrib-built-aarch64-${{ steps.daemon.outputs.sha }}
+
+      # Cache the Gradle user home (dependencies + build cache). Routed to a path
+      # under the mounted tree so it persists out of the container; keyed on the
+      # build scripts so dependency changes invalidate it.
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: .gradle-home
+          key: gradle-${{ hashFiles('jami-android/**/*.gradle.kts', 'jami-android/gradle/libs.versions.toml', 'jami-android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-
+
+      # Compile a single ABI to keep the native build to one architecture.
+      # arm64-v8a is the architecture of essentially all modern Android phones,
+      # so the resulting debug APK is installable on a real device for testing.
+      # assembleDebug also exercises Kotlin + resource compilation, which is
+      # what catches regressions in the wizard/onboarding UI changes.
+      - name: Compile debug APK
+        run: |
+          docker run --rm \
+            -e ANDROID_ABI=arm64-v8a \
+            -e GRADLE_USER_HOME=/src/.gradle-home \
+            -v "$PWD":/src -w /src \
+            jami-build bash -c './compile.sh'
+
+      # The Docker build writes cache dirs as root; hand them back to the runner
+      # user so the post-job cache-save steps can read them (runs even on failure
+      # so partial progress is still cached).
+      - name: Restore cache ownership
+        if: always()
+        run: sudo chown -R "$(id -u):$(id -g)" daemon/contrib .gradle-home 2>/dev/null || true
+
+      - name: Upload debug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jami-debug-arm64-v8a
+          path: jami-android/app/build/outputs/apk/**/debug/*.apk
+          if-no-files-found: ignore
